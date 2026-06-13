@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClinetHub - Client Hunting & Lead Collection Platform</title>
+    <!-- Google Fonts: Outfit & Fira Code -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="light-theme">
+
+    <!-- Toast Notification -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div id="liveToast" class="toast align-items-center border-0" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body" id="toastMessage">
+                    Welcome to ClinetHub!
+                </div>
+                <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- LOGIN SCREEN -->
+    <!-- ================================================================= -->
+    <div id="login-container" class="auth-wrapper d-flex align-items-center justify-content-center min-vh-100">
+        <div class="glass-card auth-card p-5 text-center shadow">
+            <div class="auth-logo mb-4">
+                <i class="bi bi-radar brand-icon-large text-dark"></i>
+                <h1 class="display-6 fw-bold mt-2 mb-1">ClinetHub</h1>
+                <p class="text-muted small">Professional Client Hunting & Lead Collection</p>
+            </div>
+            
+            <form id="login-form">
+                <div class="form-floating mb-3">
+                    <input type="text" class="form-control" id="login-username" placeholder="Username" required autocomplete="username">
+                    <label for="login-username"><i class="bi bi-person me-2"></i>Username</label>
+                </div>
+                <div class="form-floating mb-4">
+                    <input type="password" class="form-control" id="login-password" placeholder="Password" required autocomplete="current-password">
+                    <label for="login-password"><i class="bi bi-lock me-2"></i>Password</label>
+                </div>
+                <button type="submit" class="btn btn-primary-gradient w-100 py-3 mb-3" id="login-btn">
+                    <span class="spinner-border spinner-border-sm d-none me-2" role="status" aria-hidden="true"></span>
+                    Sign In to Portal
+                </button>
+            </form>
+            <div class="auth-footer text-muted small mt-2">
+                <span>Default Credentials: <code>admin</code> / <code>admin123</code></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- MAIN PLATFORM LAYOUT -->
+    <!-- ================================================================= -->
+    <div id="app-container" class="container-fluid p-0 d-none">
+        <div class="d-flex flex-column flex-md-row">
+            <!-- Sidebar -->
+            <nav id="sidebar" class="sidebar flex-column p-3">
+                <div class="sidebar-header d-flex align-items-center mb-4 pb-3 border-bottom">
+                    <i class="bi bi-radar fs-3 text-dark me-2"></i>
+                    <div>
+                        <h5 class="fw-bold mb-0 text-dark">ClinetHub</h5>
+                        <small class="text-muted">Lead Discovery</small>
+                    </div>
+                </div>
+
+                <ul class="nav nav-pills flex-column mb-auto">
+                    <li class="nav-item">
+                        <a href="#" class="nav-link active" data-view="dashboard">
+                            <i class="bi bi-speedometer2 me-3"></i>Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link" data-view="leads">
+                            <i class="bi bi-kanban me-3"></i>Lead Board
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link" data-view="scanner">
+                            <i class="bi bi-terminal me-3"></i>Project Scanner
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link" data-view="reminders">
+                            <i class="bi bi-alarm me-3 text-warning-glow"></i>Follow-Ups
+                            <span class="badge rounded-pill bg-danger ms-auto d-none" id="reminders-count-badge">0</span>
+                        </a>
+                    </li>
+                    <li class="nav-item d-none" id="nav-admin-item">
+                        <a href="#" class="nav-link" data-view="admin">
+                            <i class="bi bi-shield-lock me-3"></i>Admin Panel
+                        </a>
+                    </li>
+                </ul>
+
+                <hr class="border-secondary-subtle">
+                
+                <!-- User Profile Summary in Sidebar Footer -->
+                <div class="user-profile-footer d-flex align-items-center p-2 mb-3">
+                    <div class="avatar me-3">
+                        <div class="avatar-letter bg-primary-gradient text-white rounded-circle d-flex align-items-center justify-content-center fw-bold" id="user-avatar-char">A</div>
+                    </div>
+                    <div class="user-info overflow-hidden">
+                        <h6 class="mb-0 fw-bold text-truncate text-dark" id="user-display-name">User Name</h6>
+                        <span class="badge bg-light text-dark text-uppercase small" id="user-display-role">Executive</span>
+                    </div>
+                </div>
+                
+                <button class="btn btn-outline-danger w-100" id="logout-btn">
+                    <i class="bi bi-box-arrow-right me-2"></i>Log Out
+                </button>
+            </nav>
+
+            <!-- Main Content Panel -->
+            <main class="content-wrapper flex-grow-1 p-4">
+                
+                <!-- TOP HEADER -->
+                <header class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
+                    <div>
+                        <h2 class="fw-bold mb-1 text-dark" id="page-title">Dashboard</h2>
+                        <p class="text-muted small mb-0" id="page-subtitle">Welcome back, sales team operator</p>
+                    </div>
+                    <div class="d-flex align-items-center gap-3">
+                        <span class="badge bg-light text-dark py-2 px-3 border">
+                            <i class="bi bi-clock me-2 text-dark"></i><span id="current-time-display">00:00:00</span>
+                        </span>
+                    </div>
+                </header>
+
+                <!-- ========================================== -->
+                <!-- VIEW 1: DASHBOARD -->
+                <!-- ========================================== -->
+                <div id="view-dashboard" class="app-view">
+                    <!-- Metric Cards -->
+                    <div class="row g-4 mb-4">
+                        <div class="col-md-3">
+                            <div class="glass-card metric-card p-4">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <p class="text-muted small text-uppercase mb-1">Total Active Leads</p>
+                                        <h3 class="fw-bold mb-0 text-dark" id="stat-total-leads">0</h3>
+                                    </div>
+                                    <div class="metric-icon bg-light text-dark border rounded-circle d-flex align-items-center justify-content-center" style="width:40px; height:40px;">
+                                        <i class="bi bi-people-fill"></i>
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <span class="small text-success fw-semibold" id="stat-leads-conversion">0%</span>
+                                    <span class="text-muted small ms-1">pipeline conversion</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="glass-card metric-card p-4">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <p class="text-muted small text-uppercase mb-1">Follow-Ups Pending</p>
+                                        <h3 class="fw-bold mb-0 text-dark" id="stat-active-reminders">0</h3>
+                                    </div>
+                                    <div class="metric-icon bg-light text-dark border rounded-circle d-flex align-items-center justify-content-center" style="width:40px; height:40px;">
+                                        <i class="bi bi-alarm-fill"></i>
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <span class="small text-warning" id="stat-reminders-note">Needs attention</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="glass-card metric-card p-4">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <p class="text-muted small text-uppercase mb-1">Closed Deals (Won)</p>
+                                        <h3 class="fw-bold mb-0 text-dark" id="stat-won-deals">0</h3>
+                                    </div>
+                                    <div class="metric-icon bg-light text-dark border rounded-circle d-flex align-items-center justify-content-center" style="width:40px; height:40px;">
+                                        <i class="bi bi-trophy-fill"></i>
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <span class="small text-muted" id="stat-lost-deals">0 lost opportunities</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="glass-card metric-card p-4">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <p class="text-muted small text-uppercase mb-1">Contacted Leads</p>
+                                        <h3 class="fw-bold mb-0 text-dark" id="stat-calls-made">0</h3>
+                                    </div>
+                                    <div class="metric-icon bg-light text-dark border rounded-circle d-flex align-items-center justify-content-center" style="width:40px; height:40px;">
+                                        <i class="bi bi-telephone-outbound-fill"></i>
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <span class="small text-info fw-semibold" id="stat-contact-rate">0%</span>
+                                    <span class="text-muted small ms-1">engagement rate</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Charts row -->
+                    <div class="row g-4 mb-4">
+                        <div class="col-md-8">
+                            <div class="glass-card p-4 h-100">
+                                <h5 class="fw-bold mb-3 text-dark">Leads Captured Trend (Last 7 Days)</h5>
+                                <div class="chart-container" style="position: relative; height:250px;">
+                                    <canvas id="leadsLineChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="glass-card p-4 h-100">
+                                <h5 class="fw-bold mb-3 text-dark">Leads by Platform Source</h5>
+                                <div class="chart-container" style="position: relative; height:220px; display: flex; justify-content: center;">
+                                    <canvas id="sourcesPieChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Audit Log & Recent Activies -->
+                    <div class="glass-card p-4">
+                        <h5 class="fw-bold mb-3 text-dark"><i class="bi bi-activity me-2 text-dark"></i>Recent Operations Audit Log</h5>
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle table-dark-glass">
+                                <thead>
+                                    <tr>
+                                        <th>Timestamp</th>
+                                        <th>Operator</th>
+                                        <th>Action</th>
+                                        <th>Details</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="audit-log-tbody">
+                                    <tr>
+                                        <td colspan="4" class="text-center text-muted py-4">No recent activity found.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ========================================== -->
+                <!-- VIEW 2: LEAD BOARD -->
+                <!-- ========================================== -->
+                <div id="view-leads" class="app-view d-none">
+                    <!-- Filtering controls -->
+                    <div class="glass-card p-4 mb-4">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label class="form-label small text-muted">Search Keywords</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                    <input type="text" class="form-control" id="lead-filter-keyword" placeholder="Project name, details, location...">
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label small text-muted">Platform Source</label>
+                                <select class="form-select" id="lead-filter-source">
+                                    <option value="">All Sources</option>
+                                    <option value="LinkedIn">LinkedIn</option>
+                                    <option value="Instagram">Instagram</option>
+                                    <option value="X (Twitter)">X (Twitter)</option>
+                                    <option value="Google Maps">Google Maps</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label small text-muted">Lead Status</label>
+                                <select class="form-select" id="lead-filter-status">
+                                    <option value="">All Statuses</option>
+                                    <option value="New Lead">New Lead</option>
+                                    <option value="Contacted">Contacted</option>
+                                    <option value="Interested">Interested</option>
+                                    <option value="Follow Up Required">Follow Up Required</option>
+                                    <option value="Proposal Sent">Proposal Sent</option>
+                                    <option value="Negotiation">Negotiation</option>
+                                    <option value="Won">Won</option>
+                                    <option value="Lost">Lost</option>
+                                    <option value="Closed">Closed</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small text-muted">Date Filter</label>
+                                <div class="d-flex gap-2">
+                                    <input type="date" class="form-control text-center px-1" id="lead-filter-date-from">
+                                    <span class="align-self-center">-</span>
+                                    <input type="date" class="form-control text-center px-1" id="lead-filter-date-to">
+                                </div>
+                            </div>
+                            <div class="col-md-2 d-flex align-items-end gap-2">
+                                <button class="btn btn-primary w-100" id="lead-filter-btn"><i class="bi bi-funnel-fill me-1"></i>Filter</button>
+                                <button class="btn btn-outline-secondary" id="lead-filter-reset-btn" title="Reset Filters"><i class="bi bi-arrow-counterclockwise"></i></button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Lead Board Header actions -->
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="fw-bold mb-0 text-dark" id="leads-count-summary">0 Client Opportunities Found</h5>
+                        <button class="btn btn-primary-gradient" data-bs-toggle="modal" data-bs-target="#createLeadModal">
+                            <i class="bi bi-plus-lg me-2"></i>Create Lead Manually
+                        </button>
+                    </div>
+
+                    <!-- Lead Cards Table/Grid -->
+                    <div class="glass-card p-4">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle table-dark-glass">
+                                <thead>
+                                    <tr>
+                                        <th>Lead Details</th>
+                                        <th>Source</th>
+                                        <th>Location</th>
+                                        <th>Contact Profile</th>
+                                        <th>Status</th>
+                                        <th>Priority</th>
+                                        <th>Assignee</th>
+                                        <th class="text-end">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="leads-list-tbody">
+                                    <tr>
+                                        <td colspan="8" class="text-center text-muted py-5">
+                                            <i class="bi bi-inbox fs-2 d-block mb-3"></i>
+                                            No leads collected yet. Head to the <strong>Project Scanner</strong> to run a compliance scan!
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ========================================== -->
+                <!-- VIEW 3: PROJECT SCANNER -->
+                <!-- ========================================== -->
+                <div id="view-scanner" class="app-view d-none">
+                    <div class="row g-4">
+                        <div class="col-md-5">
+                            <div class="glass-card p-4 h-100">
+                                <h5 class="fw-bold mb-3 text-dark"><i class="bi bi-gear-fill me-2 text-primary"></i>Scanner Configuration</h5>
+                                
+                                <form id="scanner-form">
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold text-dark">Target Keywords</label>
+                                        <p class="text-muted small">Type custom client keywords comma-separated (e.g. Web Development, AI Development)</p>
+                                        <textarea class="form-control" id="scanner-keywords" rows="3" required></textarea>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold text-dark">Target Sources (Multi-select)</label>
+                                        <div class="row g-2">
+                                            <div class="col-6">
+                                                <div class="form-check card-checkbox p-3 rounded border">
+                                                    <input class="form-check-input ms-0 me-2" type="checkbox" id="src-linkedin" value="LinkedIn" checked>
+                                                    <label class="form-check-label text-dark" for="src-linkedin">
+                                                        <i class="bi bi-linkedin text-info me-1"></i>LinkedIn
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="form-check card-checkbox p-3 rounded border">
+                                                    <input class="form-check-input ms-0 me-2" type="checkbox" id="src-instagram" value="Instagram" checked>
+                                                    <label class="form-check-label text-dark" for="src-instagram">
+                                                        <i class="bi bi-instagram text-danger me-1"></i>Instagram
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="form-check card-checkbox p-3 rounded border">
+                                                    <input class="form-check-input ms-0 me-2" type="checkbox" id="src-twitter" value="X (Twitter)" checked>
+                                                    <label class="form-check-label text-dark" for="src-twitter">
+                                                        <i class="bi bi-twitter text-dark me-1"></i>X (Twitter)
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="form-check card-checkbox p-3 rounded border">
+                                                    <input class="form-check-input ms-0 me-2" type="checkbox" id="src-gmaps" value="Google Maps" checked>
+                                                    <label class="form-check-label text-dark" for="src-gmaps">
+                                                        <i class="bi bi-map-fill text-success me-1"></i>Google Maps
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="row g-3 mb-4">
+                                        <div class="col-6">
+                                            <label class="form-label small text-muted">Date Search Limit</label>
+                                            <select class="form-select" id="scanner-date-filter">
+                                                <option value="Today" selected>Today (Default)</option>
+                                                <option value="Last 7 Days">Last 7 Days</option>
+                                                <option value="Last 15 Days">Last 15 Days</option>
+                                                <option value="Last 30 Days">Last 30 Days</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label small text-muted">Time Search Limit</label>
+                                            <select class="form-select" id="scanner-time-filter">
+                                                <option value="Last 24 Hours" selected>Last 24 Hours (Default)</option>
+                                                <option value="Last 12 Hours">Last 12 Hours</option>
+                                                <option value="Last 6 Hours">Last 6 Hours</option>
+                                                <option value="Last 1 Hour">Last 1 Hour</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <button type="submit" class="btn btn-primary-gradient w-100 py-3 mb-2" id="start-scan-btn">
+                                        <i class="bi bi-radar me-2"></i>Trigger Client Hunting Scan
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <div class="col-md-7">
+                            <div class="glass-card p-4 h-100 d-flex flex-column">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-terminal-fill me-2 text-dark"></i>Scan Operations Console</h5>
+                                    <span class="badge bg-success-glow-pill" id="console-status-badge">Console Idle</span>
+                                </div>
+                                
+                                <!-- Terminal Console -->
+                                <div class="terminal-console flex-grow-1 p-3 mb-3" id="terminal-screen">
+                                    <div class="text-muted mb-2">ClinetHub Scanner v1.0.0 Console Init...</div>
+                                    <div class="text-muted mb-2">Respecting Terms of Service and Compliance constraints. Only public details extracted.</div>
+                                    <div class="text-success blink-cursor">> Ready for command...</div>
+                                </div>
+
+                                <div id="scan-results-summary" class="d-none">
+                                    <div class="alert alert-success border-0 bg-success-subtle p-3 d-flex align-items-center justify-content-between">
+                                        <div>
+                                            <h6 class="fw-bold mb-1 text-success"><i class="bi bi-check-circle-fill me-2"></i>Scan Completed Successfully</h6>
+                                            <span class="small text-dark" id="scan-summary-text">Collected 0 new leads matching configuration.</span>
+                                        </div>
+                                        <button class="btn btn-sm btn-primary-gradient" id="scan-view-leads-btn">View Collected Leads</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ========================================== -->
+                <!-- VIEW 4: FOLLOW-UPS & REMINDERS -->
+                <!-- ========================================== -->
+                <div id="view-reminders" class="app-view d-none">
+                    <div class="row g-4">
+                        <div class="col-md-4">
+                            <div class="glass-card p-4">
+                                <h5 class="fw-bold mb-3 text-dark"><i class="bi bi-calendar-plus-fill me-2 text-primary"></i>Schedule Reminder</h5>
+                                <form id="reminder-form">
+                                    <div class="mb-3">
+                                        <label class="form-label small text-muted">Select Target Opportunity</label>
+                                        <select class="form-select" id="reminder-lead-id" required>
+                                            <option value="">Choose Opportunity...</option>
+                                        </select>
+                                    </div>
+                                    <div class="row g-3 mb-3">
+                                        <div class="col-6">
+                                            <label class="form-label small text-muted">Date</label>
+                                            <input type="date" class="form-control" id="reminder-date" required>
+                                        </div>
+                                        <div class="col-6">
+                                            <label class="form-label small text-muted">Time</label>
+                                            <input type="time" class="form-control" id="reminder-time" required>
+                                        </div>
+                                    </div>
+                                    <div class="mb-4">
+                                        <label class="form-label small text-muted">Reminder Activity Note</label>
+                                        <textarea class="form-control" id="reminder-note" rows="3" placeholder="e.g. Call Client, Send follow-up proposal..." required></textarea>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary-gradient w-100 py-2">
+                                        <i class="bi bi-bell-fill me-2"></i>Schedule Reminder
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <div class="col-md-8">
+                            <div class="glass-card p-4">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-bell-fill text-warning me-2"></i>Scheduled Reminders & Follow-Ups</h5>
+                                    <div>
+                                        <button class="btn btn-sm btn-outline-secondary active" id="reminders-filter-active">Active</button>
+                                        <button class="btn btn-sm btn-outline-secondary" id="reminders-filter-completed">Completed</button>
+                                    </div>
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="table table-hover align-middle table-dark-glass">
+                                        <thead>
+                                            <tr>
+                                                <th>Status</th>
+                                                <th>Lead/Opportunity</th>
+                                                <th>Date & Time</th>
+                                                <th>Activity Note</th>
+                                                <th>Assignee</th>
+                                                <th class="text-end">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="reminders-list-tbody">
+                                            <tr>
+                                                <td colspan="6" class="text-center text-muted py-4">No follow-ups scheduled.</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ========================================== -->
+                <!-- VIEW 5: ADMIN / USERS PANEL -->
+                <!-- ========================================== -->
+                <div id="view-admin" class="app-view d-none">
+                    <div class="row g-4">
+                        <div class="col-md-4">
+                            <div class="glass-card p-4">
+                                <h5 class="fw-bold mb-3 text-dark" id="admin-user-form-title"><i class="bi bi-person-plus-fill me-2 text-primary"></i>Register User Account</h5>
+                                <form id="admin-user-form">
+                                    <input type="hidden" id="admin-user-id">
+                                    <div class="mb-3">
+                                        <label class="form-label small text-muted">Username</label>
+                                        <input type="text" class="form-control" id="admin-username" required autocomplete="username">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label small text-muted">Full Name</label>
+                                        <input type="text" class="form-control" id="admin-fullname" required autocomplete="name">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label small text-muted">Email Address</label>
+                                        <input type="email" class="form-control" id="admin-email" required autocomplete="email">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label small text-muted">Security Role</label>
+                                        <select class="form-select" id="admin-role" required>
+                                            <option value="sales_executive" selected>Sales Executive (Default)</option>
+                                            <option value="sales_manager">Sales Manager</option>
+                                            <option value="admin">System Admin</option>
+                                        </select>
+                                    </div>
+                                    <div class="mb-4" id="admin-password-container">
+                                        <label class="form-label small text-muted">Account Password</label>
+                                        <input type="password" class="form-control" id="admin-password" autocomplete="new-password">
+                                        <small class="text-muted d-block mt-1" id="admin-password-help">Password is required for new accounts</small>
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <button type="submit" class="btn btn-primary-gradient flex-grow-1" id="admin-user-submit-btn">Register User</button>
+                                        <button type="button" class="btn btn-outline-secondary d-none" id="admin-user-cancel-btn">Cancel</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
+                        <div class="col-md-8">
+                            <div class="glass-card p-4">
+                                <h5 class="fw-bold mb-3 text-dark"><i class="bi bi-people-fill me-2 text-primary"></i>Managed System User Directory</h5>
+                                <div class="table-responsive">
+                                    <table class="table table-hover align-middle table-dark-glass">
+                                        <thead>
+                                            <tr>
+                                                <th>User Profile</th>
+                                                <th>Username</th>
+                                                <th>Email Address</th>
+                                                <th>Assigned Role</th>
+                                                <th class="text-end">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="admin-users-tbody">
+                                            <tr>
+                                                <td colspan="5" class="text-center text-muted py-4">No users registered in system.</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- MODALS -->
+    <!-- ================================================================= -->
+
+    <!-- 1. EDIT LEAD DETAILS MODAL -->
+    <div class="modal fade" id="editLeadModal" tabindex="-1" aria-labelledby="editLeadModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold" id="editLeadModalLabel">Edit Opportunity Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form id="edit-lead-form">
+                        <input type="hidden" id="edit-lead-id">
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label small text-muted">Project Opportunity Title</label>
+                                <input type="text" class="form-control" id="edit-lead-project" required>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small text-muted">Platform Source</label>
+                                <input type="text" class="form-control bg-light text-muted" id="edit-lead-source" readonly>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small text-muted">Location</label>
+                                <input type="text" class="form-control" id="edit-lead-location">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small text-muted">Requirement/Project Description</label>
+                            <textarea class="form-control" id="edit-lead-description" rows="3"></textarea>
+                        </div>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label small text-muted">Contact Name</label>
+                                <input type="text" class="form-control" id="edit-lead-contact">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small text-muted">Phone Number</label>
+                                <input type="text" class="form-control" id="edit-lead-phone">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small text-muted">Email Address</label>
+                                <input type="email" class="form-control" id="edit-lead-email">
+                            </div>
+                        </div>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label small text-muted">Website URL</label>
+                                <input type="text" class="form-control" id="edit-lead-website">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small text-muted">Lead Status</label>
+                                <select class="form-select" id="edit-lead-status" required>
+                                    <option value="New Lead">New Lead</option>
+                                    <option value="Contacted">Contacted</option>
+                                    <option value="Interested">Interested</option>
+                                    <option value="Follow Up Required">Follow Up Required</option>
+                                    <option value="Proposal Sent">Proposal Sent</option>
+                                    <option value="Negotiation">Negotiation</option>
+                                    <option value="Won">Won</option>
+                                    <option value="Lost">Lost</option>
+                                    <option value="Closed">Closed</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small text-muted">Opportunity Priority</label>
+                                <select class="form-select" id="edit-lead-priority" required>
+                                    <option value="Best Opportunity">Best Opportunity</option>
+                                    <option value="Better Opportunity">Better Opportunity</option>
+                                    <option value="Normal Opportunity">Normal Opportunity</option>
+                                    <option value="Low Priority">Low Priority</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label small text-muted">Internal Collaboration Notes</label>
+                            <textarea class="form-control" id="edit-lead-notes" rows="4" placeholder="Enter follow-up outcomes, pricing discussion notes, or updates here..."></textarea>
+                        </div>
+                        
+                        <div class="d-flex justify-content-end gap-2 border-top pt-3">
+                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary-gradient px-4">Save Opportunity Details</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. CREATE MANUAL LEAD MODAL -->
+    <div class="modal fade" id="createLeadModal" tabindex="-1" aria-labelledby="createLeadModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold" id="createLeadModalLabel">Create Project Lead Manually</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form id="create-lead-form">
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label small text-muted">Project / Opportunity Title</label>
+                                <input type="text" class="form-control" id="create-lead-project" placeholder="e.g. E-Commerce Website Development" required>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small text-muted">Platform Source</label>
+                                <select class="form-select" id="create-lead-source" required>
+                                    <option value="LinkedIn" selected>LinkedIn</option>
+                                    <option value="Instagram">Instagram</option>
+                                    <option value="X (Twitter)">X (Twitter)</option>
+                                    <option value="Google Maps">Google Maps</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small text-muted">Location</label>
+                                <input type="text" class="form-control" id="create-lead-location" placeholder="e.g. New York, NY">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small text-muted">Requirement / Project Details</label>
+                            <textarea class="form-control" id="create-lead-description" rows="3" placeholder="Enter detailed project requirements..."></textarea>
+                        </div>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label small text-muted">Contact Person Name</label>
+                                <input type="text" class="form-control" id="create-lead-contact" placeholder="e.g. Jane Doe">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small text-muted">Public Phone Number</label>
+                                <input type="text" class="form-control" id="create-lead-phone" placeholder="e.g. +1 (555) 019-2834">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small text-muted">Public Email Address</label>
+                                <input type="email" class="form-control" id="create-lead-email" placeholder="e.g. jane@company.com">
+                            </div>
+                        </div>
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label small text-muted">Business Website URL</label>
+                                <input type="text" class="form-control" id="create-lead-website" placeholder="e.g. https://company.com">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small text-muted">Initial Status</label>
+                                <select class="form-select" id="create-lead-status" required>
+                                    <option value="New Lead" selected>New Lead</option>
+                                    <option value="Contacted">Contacted</option>
+                                    <option value="Interested">Interested</option>
+                                    <option value="Follow Up Required">Follow Up Required</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small text-muted">Initial Priority</label>
+                                <select class="form-select" id="create-lead-priority" required>
+                                    <option value="Best Opportunity">Best Opportunity</option>
+                                    <option value="Better Opportunity">Better Opportunity</option>
+                                    <option value="Normal Opportunity" selected>Normal Opportunity</option>
+                                    <option value="Low Priority">Low Priority</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-end gap-2 border-top pt-3">
+                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary-gradient px-4">Create Project Opportunity</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. ASSIGN LEAD MODAL -->
+    <div class="modal fade" id="assignLeadModal" tabindex="-1" aria-labelledby="assignLeadModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold" id="assignLeadModalLabel">Assign Lead to Team Member</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form id="assign-lead-form">
+                        <input type="hidden" id="assign-lead-id">
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold text-dark" id="assign-lead-title-text">Lead Title</label>
+                            <p class="text-muted small">Choose a team member to take ownership of this lead.</p>
+                            <select class="form-select" id="assign-user-select" required>
+                                <option value="">Select sales operator...</option>
+                            </select>
+                        </div>
+                        <div class="d-flex justify-content-end gap-2">
+                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary-gradient px-4">Save Assignment</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 Bundle JS with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- App Logic -->
+    <script src="js/app.js"></script>
+</body>
+</html>
