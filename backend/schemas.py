@@ -48,6 +48,12 @@ class LeadBase(BaseModel):
     collection_time: time
     status: str = "New Lead"
     priority: str = "Normal Opportunity"
+    source_link: Optional[str] = None
+    trust_score: Optional[int] = 85
+    trust_factors: Optional[str] = None
+    lead_source_detail: Optional[str] = None
+    trust_source: Optional[str] = None
+    authenticity_level: Optional[str] = None
 
 class LeadCreate(LeadBase):
     pass
@@ -66,6 +72,12 @@ class LeadUpdate(BaseModel):
     claimed_by_id: Optional[int] = None
     assigned_to_id: Optional[int] = None
     notes: Optional[str] = None
+    source_link: Optional[str] = None
+    trust_score: Optional[int] = None
+    trust_factors: Optional[str] = None
+    lead_source_detail: Optional[str] = None
+    trust_source: Optional[str] = None
+    authenticity_level: Optional[str] = None
 
 class LeadOut(LeadBase):
     id: int
@@ -141,3 +153,7 @@ class ScanTriggerRequest(BaseModel):
     sources: List[str]
     date_filter: str = "Today"  # Today, Last 7 Days, Last 15 Days, Last 30 Days, Custom Date Range
     time_filter: str = "Last 24 Hours"  # Last 1 Hour, Last 6 Hours, Last 12 Hours, Last 24 Hours, Custom Time Range
+    location: Optional[str] = "any"
+    search_engine: Optional[str] = "Google"
+    target_count: Optional[int] = 5
+    country: Optional[str] = "Any"

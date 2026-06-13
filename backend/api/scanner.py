@@ -34,7 +34,11 @@ def trigger_scan(
         keywords=request.keywords,
         sources=request.sources,
         date_filter=request.date_filter,
-        time_filter=request.time_filter
+        time_filter=request.time_filter,
+        location=request.location,
+        search_engine=request.search_engine,
+        target_count=request.target_count,
+        country=request.country
     )
     
     created_leads = []

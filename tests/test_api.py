@@ -194,3 +194,123 @@ def test_reminders_and_reports_flow():
     assert "lead_metrics" in metrics
     assert "sales_metrics" in metrics
     assert "recent_activities" in metrics
+
+def test_new_scanner_features():
+    admin_headers = get_auth_header("tester_admin", "testpassword123")
+    
+    # 1. Trigger scan with location override and country selection
+    response = client.post(
+        "/api/scanner/scan",
+        headers=admin_headers,
+        json={
+            "keywords": ["Web Development"],
+            "sources": ["LinkedIn", "Google Maps"],
+            "date_filter": "Today",
+            "time_filter": "Last 24 Hours",
+            "location": "Boston, MA",
+            "search_engine": "Bing",
+            "target_count": 3,
+            "country": "United States"
+        }
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["success"] is True
+    assert data["leads_collected"] == 3
+    assert len(data["leads"]) == 3
+    
+    # Verify the generated leads contain the correct location and source_link
+    for lead in data["leads"]:
+        assert lead["location"] == "Boston, MA"
+        assert lead["source_link"] is not None
+        assert lead["source_link"].startswith("http")
+        assert lead["lead_source_detail"] is not None
+        assert len(lead["lead_source_detail"]) > 10
+        assert lead["trust_source"] is not None
+        assert len(lead["trust_source"]) > 10
+        assert lead["authenticity_level"] is not None
+
+    # 2. Trigger scan with country selection and randomized location
+    response2 = client.post(
+        "/api/scanner/scan",
+        headers=admin_headers,
+        json={
+            "keywords": ["Mobile App Development"],
+            "sources": ["Instagram"],
+            "date_filter": "Today",
+            "time_filter": "Last 24 Hours",
+            "location": "any",
+            "search_engine": "Google",
+            "target_count": 2,
+            "country": "United Kingdom"
+        }
+    )
+    assert response2.status_code == 200
+    data2 = response2.json()
+    assert data2["leads_collected"] == 2
+    assert len(data2["leads"]) == 2
+    for lead in data2["leads"]:
+        assert lead["location"].endswith(", UK")
+        assert lead["source_link"] is not None
+
+    # 3. Trigger scan with new entrepreneur platforms (Upwork, Reddit, Wellfound, GitHub)
+    response3 = client.post(
+        "/api/scanner/scan",
+        headers=admin_headers,
+        json={
+            "keywords": ["AI Development", "SEO Services"],
+            "sources": ["Upwork", "Reddit", "Wellfound", "GitHub"],
+            "date_filter": "Today",
+            "time_filter": "Last 24 Hours",
+            "location": "any",
+            "search_engine": "Yahoo",
+            "target_count": 4,
+            "country": "Canada"
+        }
+    )
+    assert response3.status_code == 200
+    data3 = response3.json()
+    assert data3["leads_collected"] == 4
+    assert len(data3["leads"]) == 4
+    for lead in data3["leads"]:
+        assert lead["location"].endswith(", ON") or lead["location"].endswith(", BC") or lead["location"].endswith(", QC") or lead["location"].endswith(", AB")
+        assert lead["source_link"] is not None
+        assert lead["phone_number"].startswith("+1 (555)")
+        assert lead["email_address"].endswith(".ca")
+        assert lead["website"].endswith(".ca")
+        assert lead["source"] in ["Upwork", "Reddit", "Wellfound", "GitHub"]
+        if lead["source"] == "Upwork":
+            assert "upwork.com" in lead["source_link"]
+        elif lead["source"] == "Reddit":
+            assert "reddit.com" in lead["source_link"]
+        elif lead["source"] == "Wellfound":
+            assert "wellfound.com" in lead["source_link"]
+        elif lead["source"] == "GitHub":
+            assert "github.com" in lead["source_link"]
+
+def test_india_scanner_consistency():
+    admin_headers = get_auth_header("tester_admin", "testpassword123")
+    response = client.post(
+        "/api/scanner/scan",
+        headers=admin_headers,
+        json={
+            "keywords": ["Web Development"],
+            "sources": ["LinkedIn"],
+            "date_filter": "Today",
+            "time_filter": "Last 24 Hours",
+            "location": "any",
+            "search_engine": "Google",
+            "target_count": 3,
+            "country": "India"
+        }
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["leads_collected"] == 3
+    for lead in data["leads"]:
+        assert lead["phone_number"].startswith("+91")
+        assert lead["email_address"].endswith(".in")
+        assert lead["website"].endswith(".in")
+        # Ensure company name is part of domain
+        company_clean = lead["email_address"].split("@")[1].split(".in")[0]
+        assert len(company_clean) > 0

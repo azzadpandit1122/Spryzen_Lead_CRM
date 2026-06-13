@@ -36,6 +36,12 @@ class Lead(Base):
     collection_time = Column(Time, nullable=False)
     status = Column(String, default="New Lead")  # New Lead, Contacted, Interested, Follow Up Required, Proposal Sent, Negotiation, Won, Lost, Closed
     priority = Column(String, default="Normal Opportunity")  # Best Opportunity, Better Opportunity, Normal Opportunity, Low Priority
+    source_link = Column(String, nullable=True)
+    trust_score = Column(Integer, default=85)
+    trust_factors = Column(String, nullable=True)
+    lead_source_detail = Column(Text, nullable=True)
+    trust_source = Column(Text, nullable=True)
+    authenticity_level = Column(String, nullable=True)
     
     claimed_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     assigned_to_id = Column(Integer, ForeignKey("users.id"), nullable=True)

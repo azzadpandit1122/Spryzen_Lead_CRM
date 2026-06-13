@@ -13,6 +13,53 @@ from backend.api import auth, leads, reminders, users, scanner, reports
 # Create all database tables if they do not exist
 Base.metadata.create_all(bind=engine)
 
+# Migration check for SQLite to add columns if missing
+def run_migrations():
+    import sqlite3
+    if settings.DATABASE_URL.startswith("sqlite"):
+        db_path = settings.DATABASE_URL.replace("sqlite:///", "")
+        if db_path.startswith("./"):
+            db_path = db_path[2:]
+        if os.path.exists(db_path):
+            try:
+                conn = sqlite3.connect(db_path)
+                cursor = conn.cursor()
+                cursor.execute("PRAGMA table_info(leads);")
+                columns = [info[1] for info in cursor.fetchall()]
+                mutated = False
+                if "source_link" not in columns:
+                    cursor.execute("ALTER TABLE leads ADD COLUMN source_link TEXT;")
+                    mutated = True
+                    print("Migration: Added source_link column to leads table.")
+                if "trust_score" not in columns:
+                    cursor.execute("ALTER TABLE leads ADD COLUMN trust_score INTEGER DEFAULT 85;")
+                    mutated = True
+                    print("Migration: Added trust_score column to leads table.")
+                if "trust_factors" not in columns:
+                    cursor.execute("ALTER TABLE leads ADD COLUMN trust_factors TEXT;")
+                    mutated = True
+                    print("Migration: Added trust_factors column to leads table.")
+                if "lead_source_detail" not in columns:
+                    cursor.execute("ALTER TABLE leads ADD COLUMN lead_source_detail TEXT;")
+                    mutated = True
+                    print("Migration: Added lead_source_detail column to leads table.")
+                if "trust_source" not in columns:
+                    cursor.execute("ALTER TABLE leads ADD COLUMN trust_source TEXT;")
+                    mutated = True
+                    print("Migration: Added trust_source column to leads table.")
+                if "authenticity_level" not in columns:
+                    cursor.execute("ALTER TABLE leads ADD COLUMN authenticity_level TEXT;")
+                    mutated = True
+                    print("Migration: Added authenticity_level column to leads table.")
+                if mutated:
+                    conn.commit()
+                    print(f"Migration: Database schema successfully updated at {db_path}")
+                conn.close()
+            except Exception as e:
+                print(f"Migration error for SQLite {db_path}: {e}")
+
+run_migrations()
+
 app = FastAPI(title=settings.PROJECT_NAME)
 
 # CORS configuration

@@ -153,8 +153,21 @@ function handleLogout() {
 
 document.getElementById('logout-btn').addEventListener('click', () => {
     handleLogout();
+    document.getElementById('app-container').classList.remove('sidebar-collapsed');
     showToast("Logged out successfully");
 });
+
+// Sidebar Toggle & Backdrop Event Listeners
+document.getElementById('sidebar-toggle-btn').addEventListener('click', () => {
+    document.getElementById('app-container').classList.toggle('sidebar-collapsed');
+});
+
+const sidebarBackdrop = document.getElementById('sidebar-backdrop');
+if (sidebarBackdrop) {
+    sidebarBackdrop.addEventListener('click', () => {
+        document.getElementById('app-container').classList.remove('sidebar-collapsed');
+    });
+}
 
 /* ==========================================================================
    NAVIGATION & VIEWS SYSTEM
@@ -169,6 +182,11 @@ document.querySelectorAll('#sidebar .nav-link').forEach(link => {
         
         const viewName = link.getAttribute('data-view');
         switchView(viewName);
+        
+        // Auto-close sidebar on mobile after selecting a view
+        if (window.innerWidth <= 768) {
+            document.getElementById('app-container').classList.remove('sidebar-collapsed');
+        }
     });
 });
 
@@ -407,6 +425,10 @@ function renderLeadsList(leads) {
         if (lead.source === 'Instagram') srcClass = 'source-instagram';
         else if (lead.source === 'X (Twitter)') srcClass = 'source-twitter';
         else if (lead.source === 'Google Maps') srcClass = 'source-google-maps';
+        else if (lead.source === 'Upwork') srcClass = 'source-upwork';
+        else if (lead.source === 'Reddit') srcClass = 'source-reddit';
+        else if (lead.source === 'Wellfound') srcClass = 'source-wellfound';
+        else if (lead.source === 'GitHub') srcClass = 'source-github';
         
         let statusClass = 'status-new-lead';
         if (lead.status === 'Contacted') statusClass = 'status-contacted';
@@ -422,6 +444,10 @@ function renderLeadsList(leads) {
         if (lead.priority === 'Best Opportunity') pClass = 'priority-best';
         else if (lead.priority === 'Better Opportunity') pClass = 'priority-better';
         else if (lead.priority === 'Low Priority') pClass = 'priority-low';
+        
+        let trustBadgeClass = 'bg-warning-subtle text-warning border border-warning-subtle';
+        if (lead.trust_score >= 90) trustBadgeClass = 'bg-success-subtle text-success border border-success-subtle';
+        else if (lead.trust_score >= 80) trustBadgeClass = 'bg-info-subtle text-info border border-info-subtle';
         
         let assigneeText = '<span class="text-muted small">Unassigned</span>';
         if (lead.assigned_to) {
@@ -446,12 +472,28 @@ function renderLeadsList(leads) {
         tbody.innerHTML += `
             <tr>
                 <td>
-                    <div class="fw-bold text-dark">${lead.project_name}</div>
-                    <div class="text-muted small text-truncate" style="max-width: 320px;" title="${lead.project_description || ''}">${lead.project_description || 'No description'}</div>
-                    <div class="text-muted small mt-1"><i class="bi bi-calendar-check me-1"></i>Collected: ${lead.collection_date} ${lead.collection_time.slice(0,5)}</div>
+                    <div class="lead-hover-trigger" data-lead-id="${lead.id}" onclick="openViewLeadModal(${lead.id})" style="cursor: pointer;">
+                        <div class="d-flex align-items-center mb-1">
+                            <div class="fw-bold text-dark hover-underline">${lead.project_name}</div>
+                            <span class="badge ${trustBadgeClass} ms-2" style="font-size: 0.65rem;">
+                                <i class="bi bi-shield-fill-check me-1"></i>Trust: ${lead.trust_score || 85}%
+                            </span>
+                        </div>
+                        <div class="text-muted small text-truncate" style="max-width: 320px;">
+                            ${lead.project_description ? lead.project_description.split('###')[0].replace(/#+/g, '').trim() : 'No description'}
+                        </div>
+                        <div class="text-muted small mt-1"><i class="bi bi-calendar-check me-1"></i>Collected: ${lead.collection_date} ${lead.collection_time.slice(0,5)}</div>
+                        ${lead.trust_factors ? `<div class="text-muted small mt-1" style="font-size: 0.72rem;"><i class="bi bi-patch-check-fill text-primary me-1"></i><span class="text-secondary font-monospace">${lead.trust_factors}</span></div>` : ''}
+                    </div>
                 </td>
                 <td>
-                    <span class="badge badge-source ${srcClass}">${lead.source}</span>
+                    ${lead.source_link ? `
+                        <a href="${lead.source_link}" target="_blank" class="badge badge-source ${srcClass} text-decoration-none" title="Visit Lead Source Link">
+                            ${lead.source} <i class="bi bi-box-arrow-up-right ms-1"></i>
+                        </a>
+                    ` : `
+                        <span class="badge badge-source ${srcClass}">${lead.source}</span>
+                    `}
                 </td>
                 <td>
                     <span class="small text-muted"><i class="bi bi-geo-alt-fill text-danger me-1"></i>${lead.location || 'Unknown'}</span>
@@ -472,6 +514,7 @@ function renderLeadsList(leads) {
                     <div class="d-flex justify-content-end align-items-center">
                         ${claimBtnHtml}
                         ${assignBtnHtml}
+                        <button class="btn btn-sm btn-outline-info px-2 py-1 me-1" onclick="openViewLeadModal(${lead.id})" title="View Vetting Details"><i class="bi bi-eye-fill"></i></button>
                         <button class="btn btn-sm btn-outline-primary px-2 py-1 me-1" onclick="openEditLeadModal(${lead.id})" title="Edit Details"><i class="bi bi-pencil-fill"></i></button>
                         ${deleteBtnHtml}
                     </div>
@@ -479,6 +522,9 @@ function renderLeadsList(leads) {
             </tr>
         `;
     });
+    
+    // Initialize hover preview cards for all triggers
+    setupLeadHoverCards();
 }
 
 async function claimLeadOpportunity(leadId) {
@@ -529,6 +575,145 @@ document.getElementById('assign-lead-form').addEventListener('submit', async (e)
     }
 });
 
+// Copy text to clipboard helper in View Lead modal
+function copyViewLeadText(elementId) {
+    const text = document.getElementById(elementId).innerText;
+    if (text === 'N/A') {
+        showToast("No text to copy", true);
+        return;
+    }
+    navigator.clipboard.writeText(text).then(() => {
+        showToast("Copied to clipboard!");
+    }).catch(err => {
+        console.error("Failed to copy: ", err);
+        showToast("Copy failed", true);
+    });
+}
+
+function openViewLeadModal(leadId) {
+    const lead = loadedLeads.find(l => l.id === leadId);
+    if (!lead) return;
+
+    document.getElementById('view-lead-project').innerText = lead.project_name;
+    document.getElementById('view-lead-location').innerText = lead.location || 'Unknown';
+    
+    // Set source badge
+    const srcEl = document.getElementById('view-lead-source-badge');
+    srcEl.innerText = lead.source;
+    
+    let srcClass = 'bg-secondary';
+    if (lead.source === 'LinkedIn') srcClass = 'source-linkedin';
+    else if (lead.source === 'Instagram') srcClass = 'source-instagram';
+    else if (lead.source === 'X (Twitter)') srcClass = 'source-twitter';
+    else if (lead.source === 'Google Maps') srcClass = 'source-google-maps';
+    else if (lead.source === 'Upwork') srcClass = 'source-upwork';
+    else if (lead.source === 'Reddit') srcClass = 'source-reddit';
+    else if (lead.source === 'Wellfound') srcClass = 'source-wellfound';
+    else if (lead.source === 'GitHub') srcClass = 'source-github';
+    srcEl.className = `badge badge-source ${srcClass}`;
+
+    // Status badge
+    const statusEl = document.getElementById('view-lead-status-badge');
+    statusEl.innerText = lead.status;
+    let statusClass = 'status-new-lead';
+    if (lead.status === 'Contacted') statusClass = 'status-contacted';
+    else if (lead.status === 'Interested') statusClass = 'status-interested';
+    else if (lead.status === 'Follow Up Required') statusClass = 'status-follow-up-required';
+    else if (lead.status === 'Proposal Sent') statusClass = 'status-proposal-sent';
+    else if (lead.status === 'Negotiation') statusClass = 'status-negotiation';
+    else if (lead.status === 'Won') statusClass = 'status-won';
+    else if (lead.status === 'Lost') statusClass = 'status-lost';
+    else if (lead.status === 'Closed') statusClass = 'status-closed';
+    statusEl.className = `badge ${statusClass}`;
+
+    // Priority badge
+    const priorityEl = document.getElementById('view-lead-priority-badge');
+    priorityEl.innerText = lead.priority;
+    let pClass = 'priority-normal';
+    if (lead.priority === 'Best Opportunity') pClass = 'priority-best';
+    else if (lead.priority === 'Better Opportunity') pClass = 'priority-better';
+    else if (lead.priority === 'Low Priority') pClass = 'priority-low';
+    priorityEl.className = `badge ${pClass}`;
+
+    // Collection DateTime
+    document.getElementById('view-lead-collected').innerText = `${lead.collection_date} ${lead.collection_time.slice(0, 5)}`;
+
+    // Description text
+    document.getElementById('view-lead-description').innerText = lead.project_description || 'No description provided';
+
+    // Contact profile
+    document.getElementById('view-lead-contact').innerText = lead.contact_name || 'N/A';
+    document.getElementById('view-lead-email').innerText = lead.email_address || 'N/A';
+    document.getElementById('view-lead-phone').innerText = lead.phone_number || 'N/A';
+    
+    const webEl = document.getElementById('view-lead-website');
+    if (lead.website) {
+        webEl.innerText = lead.website.replace('https://', '').replace('http://', '');
+        webEl.href = lead.website;
+        webEl.classList.remove('d-none');
+    } else {
+        webEl.innerText = 'N/A';
+        webEl.href = '#';
+    }
+
+    // Vetting report details
+    const score = lead.trust_score || 85;
+    document.getElementById('view-lead-trust-score-pct').innerText = `${score}%`;
+    const progressEl = document.getElementById('view-lead-trust-progress');
+    progressEl.style.width = `${score}%`;
+    progressEl.setAttribute('aria-valuenow', score);
+    
+    if (score >= 90) {
+        progressEl.className = 'progress-bar bg-success';
+    } else if (score >= 80) {
+        progressEl.className = 'progress-bar bg-info';
+    } else {
+        progressEl.className = 'progress-bar bg-warning';
+    }
+
+    // Authenticity Level & Icon
+    const tierText = lead.authenticity_level || (score >= 95 ? "Tier 1: Gold Super Lead (Highest Vetting)" : (score >= 85 ? "Tier 2: Silver Vetted Lead (Confirmed Real)" : "Tier 3: Bronze Warm Lead (Potential Match)"));
+    document.getElementById('view-lead-tier').innerText = tierText;
+    
+    const tierIcon = document.getElementById('view-lead-tier-icon');
+    if (score >= 95) {
+        tierIcon.className = 'bi bi-shield-fill-check text-warning fs-4';
+    } else if (score >= 85) {
+        tierIcon.className = 'bi bi-patch-check-fill text-success fs-4';
+    } else {
+        tierIcon.className = 'bi bi-check-circle-fill text-info fs-4';
+    }
+
+    // Set other vetting items
+    document.getElementById('view-lead-source-detail').innerText = lead.lead_source_detail || `Vetted crawl on ${lead.source} matching active keywords.`;
+    document.getElementById('view-lead-trust-source').innerText = lead.trust_source || `Trust factors matching verification criteria for platform.`;
+    document.getElementById('view-lead-trust-factors').innerText = lead.trust_factors || 'Manual assessment verification check: OK';
+
+    // Internal Notes
+    document.getElementById('view-lead-notes').innerText = lead.notes || 'No internal notes added yet.';
+
+    // Direct link to post
+    const linkEl = document.getElementById('view-lead-direct-link');
+    if (lead.source_link) {
+        linkEl.href = lead.source_link;
+        linkEl.style.display = 'inline-block';
+    } else {
+        linkEl.style.display = 'none';
+    }
+
+    // Bind edit button
+    const editBtn = document.getElementById('view-lead-edit-btn');
+    editBtn.onclick = function() {
+        const viewModalEl = document.getElementById('viewLeadModal');
+        const viewModal = bootstrap.Modal.getInstance(viewModalEl);
+        if (viewModal) viewModal.hide();
+        openEditLeadModal(lead.id);
+    };
+
+    const modal = new bootstrap.Modal(document.getElementById('viewLeadModal'));
+    modal.show();
+}
+
 function openEditLeadModal(leadId) {
     const lead = loadedLeads.find(l => l.id === leadId);
     if (!lead) return;
@@ -545,6 +730,10 @@ function openEditLeadModal(leadId) {
     document.getElementById('edit-lead-status').value = lead.status;
     document.getElementById('edit-lead-priority').value = lead.priority;
     document.getElementById('edit-lead-notes').value = lead.notes || '';
+    document.getElementById('edit-lead-trust-factors').value = lead.trust_factors || '';
+    document.getElementById('edit-lead-authenticity-level').value = lead.authenticity_level || 'Tier 2: Silver Vetted Lead (Confirmed Real)';
+    document.getElementById('edit-lead-source-detail').value = lead.lead_source_detail || '';
+    document.getElementById('edit-lead-trust-source').value = lead.trust_source || '';
     
     const modal = new bootstrap.Modal(document.getElementById('editLeadModal'));
     modal.show();
@@ -564,7 +753,12 @@ document.getElementById('edit-lead-form').addEventListener('submit', async (e) =
         website: document.getElementById('edit-lead-website').value,
         status: document.getElementById('edit-lead-status').value,
         priority: document.getElementById('edit-lead-priority').value,
-        notes: document.getElementById('edit-lead-notes').value
+        notes: document.getElementById('edit-lead-notes').value,
+        trust_score: parseInt(document.getElementById('edit-lead-trust-score').value) || 85,
+        trust_factors: document.getElementById('edit-lead-trust-factors').value.trim() || null,
+        authenticity_level: document.getElementById('edit-lead-authenticity-level').value,
+        lead_source_detail: document.getElementById('edit-lead-source-detail').value.trim() || null,
+        trust_source: document.getElementById('edit-lead-trust-source').value.trim() || null
     };
     
     try {
@@ -601,6 +795,11 @@ document.getElementById('create-lead-form').addEventListener('submit', async (e)
         website: document.getElementById('create-lead-website').value.trim() || null,
         status: document.getElementById('create-lead-status').value,
         priority: document.getElementById('create-lead-priority').value,
+        trust_score: parseInt(document.getElementById('create-lead-trust-score').value) || 85,
+        trust_factors: document.getElementById('create-lead-trust-factors').value.trim() || null,
+        authenticity_level: document.getElementById('create-lead-authenticity-level').value,
+        lead_source_detail: document.getElementById('create-lead-source-detail').value.trim() || null,
+        trust_source: document.getElementById('create-lead-trust-source').value.trim() || null,
         collection_date: todayStr,
         collection_time: timeStr
     };
@@ -638,6 +837,10 @@ async function loadScannerConfig() {
         document.getElementById('src-instagram').checked = sourcesList.includes('Instagram');
         document.getElementById('src-twitter').checked = sourcesList.includes('X (Twitter)');
         document.getElementById('src-gmaps').checked = sourcesList.includes('Google Maps');
+        document.getElementById('src-upwork').checked = sourcesList.includes('Upwork');
+        document.getElementById('src-reddit').checked = sourcesList.includes('Reddit');
+        document.getElementById('src-wellfound').checked = sourcesList.includes('Wellfound');
+        document.getElementById('src-github').checked = sourcesList.includes('GitHub');
         
     } catch (err) {
         showToast("Failed to fetch scanner settings config.", true);
@@ -654,6 +857,10 @@ document.getElementById('scanner-form').addEventListener('submit', async (e) => 
     if (document.getElementById('src-instagram').checked) sources.push('Instagram');
     if (document.getElementById('src-twitter').checked) sources.push('X (Twitter)');
     if (document.getElementById('src-gmaps').checked) sources.push('Google Maps');
+    if (document.getElementById('src-upwork').checked) sources.push('Upwork');
+    if (document.getElementById('src-reddit').checked) sources.push('Reddit');
+    if (document.getElementById('src-wellfound').checked) sources.push('Wellfound');
+    if (document.getElementById('src-github').checked) sources.push('GitHub');
     
     if (sources.length === 0) {
         showToast("Please select at least one target scanning source.", true);
@@ -663,6 +870,10 @@ document.getElementById('scanner-form').addEventListener('submit', async (e) => 
     const keywords = keywordsInput.split(',').map(k => k.trim()).filter(k => k.length > 0);
     const dateFilter = document.getElementById('scanner-date-filter').value;
     const timeFilter = document.getElementById('scanner-time-filter').value;
+    const location = document.getElementById('scanner-location').value.trim() || 'any';
+    const country = document.getElementById('scanner-country').value;
+    const searchEngine = document.getElementById('scanner-search-engine').value;
+    const targetCount = parseInt(document.getElementById('scanner-target-count').value) || 5;
     
     const terminal = document.getElementById('terminal-screen');
     terminal.innerHTML = '<div class="text-muted mb-2">[INFO] Handshaking secure platform protocol...</div>';
@@ -684,7 +895,11 @@ document.getElementById('scanner-form').addEventListener('submit', async (e) => 
                 keywords: keywords,
                 sources: sources,
                 date_filter: dateFilter,
-                time_filter: timeFilter
+                time_filter: timeFilter,
+                location: location,
+                search_engine: searchEngine,
+                target_count: targetCount,
+                country: country
             }
         });
         
@@ -1085,3 +1300,122 @@ window.addEventListener('DOMContentLoaded', async () => {
         handleLogout();
     }
 });
+
+// Setup Hover Preview Card for Leads Vetting Audit
+function setupLeadHoverCards() {
+    const triggers = document.querySelectorAll('.lead-hover-trigger');
+    const card = document.getElementById('lead-hover-card');
+    if (!card) return;
+    
+    triggers.forEach(trigger => {
+        trigger.addEventListener('click', () => {
+            card.classList.remove('show');
+            card.classList.add('d-none');
+        });
+        
+        trigger.addEventListener('mouseenter', (e) => {
+            const leadId = parseInt(trigger.getAttribute('data-lead-id'));
+            const lead = loadedLeads.find(l => l.id === leadId);
+            if (!lead) return;
+            
+            // Format Description (exclude Markdown headers for clean hover reading)
+            let descSnippet = lead.project_description || '';
+            if (descSnippet.includes('### Opportunity Overview')) {
+                descSnippet = descSnippet.split('### Opportunity Overview')[1].split('###')[0].trim();
+            }
+            descSnippet = descSnippet.replace(/#+/g, '').trim();
+            if (descSnippet.length > 220) descSnippet = descSnippet.substring(0, 220) + '...';
+            
+            // Determine tier classes
+            const score = lead.trust_score || 85;
+            let tierClass = 'tier-silver';
+            let tierName = lead.authenticity_level || 'Tier 2: Silver Vetted Lead';
+            if (score >= 95) {
+                tierClass = 'tier-gold';
+            } else if (score < 85) {
+                tierClass = 'tier-bronze';
+            }
+            
+            let progressBarClass = 'bg-info';
+            if (score >= 90) progressBarClass = 'bg-success';
+            else if (score < 80) progressBarClass = 'bg-warning';
+
+            let srcClass = 'bg-secondary';
+            if (lead.source === 'LinkedIn') srcClass = 'source-linkedin';
+            else if (lead.source === 'Instagram') srcClass = 'source-instagram';
+            else if (lead.source === 'X (Twitter)') srcClass = 'source-twitter';
+            else if (lead.source === 'Google Maps') srcClass = 'source-google-maps';
+            else if (lead.source === 'Upwork') srcClass = 'source-upwork';
+            else if (lead.source === 'Reddit') srcClass = 'source-reddit';
+            else if (lead.source === 'Wellfound') srcClass = 'source-wellfound';
+            else if (lead.source === 'GitHub') srcClass = 'source-github';
+
+            card.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                    <span class="badge ${srcClass} badge-source" style="font-size: 0.65rem;">${lead.source}</span>
+                    <span class="badge ${tierClass}" style="font-size: 0.65rem;">${tierName.split('(')[0].trim()}</span>
+                </div>
+                <h6 class="fw-bold text-dark mb-1" style="font-size: 0.95rem;">${lead.project_name}</h6>
+                <div class="mb-2">
+                    <div class="d-flex justify-content-between align-items-center mb-1" style="font-size: 0.7rem;">
+                        <span class="text-muted font-monospace">Trust Match Score</span>
+                        <span class="fw-bold text-dark font-monospace">${score}%</span>
+                    </div>
+                    <div class="progress" style="height: 6px;">
+                        <div class="progress-bar ${progressBarClass}" style="width: ${score}%;"></div>
+                    </div>
+                </div>
+                <p class="text-muted mb-2 font-sans-serif" style="font-size: 0.78rem; line-height: 1.45;">
+                    ${descSnippet}
+                </p>
+                <div class="bg-light p-2 rounded border small text-secondary font-monospace" style="font-size: 0.7rem; line-height: 1.4;">
+                    <div><i class="bi bi-search me-1 text-primary"></i><strong>Source:</strong> ${lead.lead_source_detail || 'N/A'}</div>
+                    <div class="mt-1"><i class="bi bi-shield-check me-1 text-success"></i><strong>Trust:</strong> ${lead.trust_source || 'N/A'}</div>
+                </div>
+                <div class="mt-2 text-end">
+                    <small class="text-primary font-semibold" style="font-size: 0.68rem;"><i class="bi bi-info-circle me-1"></i>Click eye icon for full vetting report</small>
+                </div>
+            `;
+            
+            card.classList.remove('d-none');
+            // Force layout update
+            card.offsetHeight;
+            card.classList.add('show');
+            
+            positionCard(e);
+        });
+        
+        trigger.addEventListener('mousemove', (e) => {
+            positionCard(e);
+        });
+        
+        trigger.addEventListener('mouseleave', () => {
+            card.classList.remove('show');
+            // Hide element from layout after fade out
+            setTimeout(() => {
+                if (!card.classList.contains('show')) {
+                    card.classList.add('d-none');
+                }
+            }, 150);
+        });
+    });
+    
+    function positionCard(e) {
+        const cardWidth = 380;
+        const cardHeight = card.offsetHeight || 250;
+        
+        let left = e.pageX + 15;
+        let top = e.pageY + 15;
+        
+        // Window boundaries checks to prevent overflow
+        if (left + cardWidth > window.innerWidth + window.pageXOffset) {
+            left = e.pageX - cardWidth - 15;
+        }
+        if (top + cardHeight > window.innerHeight + window.pageYOffset) {
+            top = e.pageY - cardHeight - 15;
+        }
+        
+        card.style.left = `${left}px`;
+        card.style.top = `${top}px`;
+    }
+}

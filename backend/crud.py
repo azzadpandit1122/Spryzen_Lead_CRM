@@ -212,7 +212,7 @@ def get_scanner_config(db: Session):
         # Create a default configuration
         config = ScannerConfig(
             keywords="Web Development,Mobile App Development,AI Development,SEO Services,Digital Marketing",
-            sources="LinkedIn,Instagram,X (Twitter),Google Maps",
+            sources="LinkedIn,Instagram,X (Twitter),Google Maps,Upwork,Reddit,Wellfound,GitHub",
             schedule_interval="daily",
             active=True
         )
