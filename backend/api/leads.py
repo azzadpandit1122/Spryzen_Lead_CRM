@@ -57,6 +57,20 @@ def create_lead(
 ):
     return crud.create_lead(db=db, lead=lead, creator_id=current_user.id)
 
+@router.post("/bulk-delete")
+def bulk_delete_leads(
+    request: schemas.BulkDeleteRequest,
+    current_user: User = Depends(auth_utils.require_manager_or_admin),
+    db: Session = Depends(get_db)
+):
+    deleted_count = 0
+    for lead_id in request.lead_ids:
+        db_lead = crud.get_lead(db, lead_id=lead_id)
+        if db_lead:
+            crud.delete_lead(db=db, lead_id=lead_id, deleter_id=current_user.id)
+            deleted_count += 1
+    return {"detail": f"Successfully deleted {deleted_count} leads"}
+
 @router.put("/{lead_id}", response_model=schemas.LeadOut)
 def update_lead(
     lead_id: int,

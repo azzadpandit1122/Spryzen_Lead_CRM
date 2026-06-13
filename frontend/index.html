@@ -320,11 +320,16 @@
                     </div>
 
                     <!-- Lead Board Header actions -->
-                    <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
                         <h5 class="fw-bold mb-0 text-dark" id="leads-count-summary">0 Client Opportunities Found</h5>
-                        <button class="btn btn-primary-gradient" data-bs-toggle="modal" data-bs-target="#createLeadModal">
-                            <i class="bi bi-plus-lg me-2"></i>Create Lead Manually
-                        </button>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-danger d-none" id="delete-selected-leads-btn">
+                                <i class="bi bi-trash me-2"></i>Delete Selected
+                            </button>
+                            <button class="btn btn-primary-gradient" data-bs-toggle="modal" data-bs-target="#createLeadModal">
+                                <i class="bi bi-plus-lg me-2"></i>Create Lead Manually
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Lead Cards Table/Grid -->
@@ -333,6 +338,9 @@
                             <table class="table table-hover align-middle table-dark-glass">
                                 <thead>
                                     <tr>
+                                        <th style="width: 40px;" class="d-none">
+                                            <input type="checkbox" id="select-all-leads-checkbox" class="form-check-input">
+                                        </th>
                                         <th>Lead Details</th>
                                         <th>Source</th>
                                         <th>Location</th>

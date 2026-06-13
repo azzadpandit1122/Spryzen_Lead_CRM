@@ -375,6 +375,80 @@ document.getElementById('lead-filter-reset-btn').addEventListener('click', () =>
     refreshLeadsList();
 });
 
+// Select all checkbox functionality
+const selectAllCheckbox = document.getElementById('select-all-leads-checkbox');
+if (selectAllCheckbox) {
+    selectAllCheckbox.addEventListener('change', (e) => {
+        const isChecked = e.target.checked;
+        document.querySelectorAll('.lead-select-checkbox').forEach(cb => {
+            cb.checked = isChecked;
+        });
+        updateSelectAllAndBulkDeleteBtn();
+    });
+}
+
+// Event delegation for individual row checkboxes
+const leadsListTbody = document.getElementById('leads-list-tbody');
+if (leadsListTbody) {
+    leadsListTbody.addEventListener('change', (e) => {
+        if (e.target.classList.contains('lead-select-checkbox')) {
+            updateSelectAllAndBulkDeleteBtn();
+        }
+    });
+}
+
+// Bulk delete button click action
+const deleteSelectedLeadsBtn = document.getElementById('delete-selected-leads-btn');
+if (deleteSelectedLeadsBtn) {
+    deleteSelectedLeadsBtn.addEventListener('click', async () => {
+        const checkedBoxes = document.querySelectorAll('.lead-select-checkbox:checked');
+        if (checkedBoxes.length === 0) return;
+        
+        const leadIds = Array.from(checkedBoxes).map(cb => parseInt(cb.getAttribute('data-lead-id')));
+        
+        if (!confirm(`Are you sure you want to delete the ${leadIds.length} selected lead(s)?`)) {
+            return;
+        }
+        
+        try {
+            const response = await apiRequest('/api/leads/bulk-delete', {
+                method: 'POST',
+                body: { lead_ids: leadIds }
+            });
+            showToast(response.detail || `Successfully deleted ${leadIds.length} lead(s).`);
+            refreshLeadsList();
+        } catch (err) {
+            showToast(err.message, true);
+        }
+    });
+}
+
+// Helper function to update bulk selection UI states
+function updateSelectAllAndBulkDeleteBtn() {
+    const checkboxes = document.querySelectorAll('.lead-select-checkbox');
+    const checkedBoxes = document.querySelectorAll('.lead-select-checkbox:checked');
+    const selectAllCheckbox = document.getElementById('select-all-leads-checkbox');
+    const deleteSelectedBtn = document.getElementById('delete-selected-leads-btn');
+    
+    if (selectAllCheckbox) {
+        if (checkboxes.length > 0) {
+            selectAllCheckbox.checked = (checkboxes.length === checkedBoxes.length);
+        } else {
+            selectAllCheckbox.checked = false;
+        }
+    }
+    
+    if (deleteSelectedBtn) {
+        const canDelete = state.user && (state.user.role === 'admin' || state.user.role === 'sales_manager');
+        if (canDelete && checkedBoxes.length > 0) {
+            deleteSelectedBtn.classList.remove('d-none');
+            deleteSelectedBtn.innerHTML = `<i class="bi bi-trash me-2"></i>Delete Selected (${checkedBoxes.length})`;
+        } else {
+            deleteSelectedBtn.classList.add('d-none');
+        }
+    }
+}
+
 async function refreshLeadsList() {
     const keyword = document.getElementById('lead-filter-keyword').value.trim();
     const source = document.getElementById('lead-filter-source').value;
@@ -408,10 +482,26 @@ function renderLeadsList(leads) {
     const tbody = document.getElementById('leads-list-tbody');
     tbody.innerHTML = '';
     
+    const canDelete = state.user && (state.user.role === 'admin' || state.user.role === 'sales_manager');
+    
+    // Toggle header select-all column visibility
+    const selectAllCheckbox = document.getElementById('select-all-leads-checkbox');
+    if (selectAllCheckbox) {
+        selectAllCheckbox.checked = false;
+        selectAllCheckbox.closest('th').classList.toggle('d-none', !canDelete);
+    }
+    
+    // Toggle delete-selected button visibility
+    const deleteSelectedBtn = document.getElementById('delete-selected-leads-btn');
+    if (deleteSelectedBtn) {
+        deleteSelectedBtn.classList.add('d-none');
+    }
+    
     if (leads.length === 0) {
+        const colspan = canDelete ? 9 : 8;
         tbody.innerHTML = `
             <tr>
-                <td colspan="8" class="text-center text-muted py-5">
+                <td colspan="${colspan}" class="text-center text-muted py-5">
                     <i class="bi bi-inbox fs-2 d-block mb-3"></i>
                     No leads collected yet. Head to the <strong>Project Scanner</strong> to run a compliance scan!
                 </td>
@@ -469,8 +559,18 @@ function renderLeadsList(leads) {
             deleteBtnHtml = `<button class="btn btn-sm btn-outline-danger px-2 py-1" onclick="deleteLeadOpportunity(${lead.id})" title="Delete Lead"><i class="bi bi-trash-fill"></i></button>`;
         }
         
+        let checkboxHtml = '';
+        if (canDelete) {
+            checkboxHtml = `
+                <td class="checkbox-column">
+                    <input type="checkbox" class="form-check-input lead-select-checkbox" data-lead-id="${lead.id}">
+                </td>
+            `;
+        }
+        
         tbody.innerHTML += `
             <tr>
+                ${checkboxHtml}
                 <td>
                     <div class="lead-hover-trigger" data-lead-id="${lead.id}" onclick="openViewLeadModal(${lead.id})" style="cursor: pointer;">
                         <div class="d-flex align-items-center mb-1">

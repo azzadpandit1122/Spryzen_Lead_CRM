@@ -161,3 +161,6 @@ class ScanTriggerRequest(BaseModel):
     target_count: Optional[int] = 5
     country: Optional[str] = "Any"
     stream: Optional[bool] = False
+
+class BulkDeleteRequest(BaseModel):
+    lead_ids: List[int]

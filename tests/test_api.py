@@ -560,3 +560,66 @@ def test_scanner_streaming():
     assert final_result is not None
     assert final_result["success"] is True
     assert final_result["leads_collected"] > 0
+
+def test_bulk_delete_leads():
+    admin_headers = get_auth_header("tester_admin", "testpassword123")
+    exec_headers = get_auth_header("tester_exec", "testpassword123")
+    
+    # 1. Create a couple of leads manually using admin
+    response1 = client.post(
+        "/api/leads",
+        headers=admin_headers,
+        json={
+            "project_name": "Bulk Lead 1",
+            "source": "LinkedIn",
+            "contact_name": "Alice Smith",
+            "phone_number": "+1 (555) 001-0001",
+            "email_address": "alice@bulkdelete.com",
+            "source_link": "https://www.linkedin.com/jobs/001",
+            "collection_date": "2026-06-13",
+            "collection_time": "12:00:00"
+        }
+    )
+    assert response1.status_code == 200
+    lead1_id = response1.json()["id"]
+
+    response2 = client.post(
+        "/api/leads",
+        headers=admin_headers,
+        json={
+            "project_name": "Bulk Lead 2",
+            "source": "Instagram",
+            "contact_name": "Bob Jones",
+            "phone_number": "+1 (555) 002-0002",
+            "email_address": "bob@bulkdelete.com",
+            "source_link": "https://instagram.com/p/002",
+            "collection_date": "2026-06-13",
+            "collection_time": "12:00:00"
+        }
+    )
+    assert response2.status_code == 200
+    lead2_id = response2.json()["id"]
+
+    # 2. Try to bulk delete using sales_executive (should be Forbidden / Unauthorized)
+    response_del_exec = client.post(
+        "/api/leads/bulk-delete",
+        headers=exec_headers,
+        json={"lead_ids": [lead1_id, lead2_id]}
+    )
+    assert response_del_exec.status_code == 403
+
+    # 3. Bulk delete using admin (should succeed)
+    response_del_admin = client.post(
+        "/api/leads/bulk-delete",
+        headers=admin_headers,
+        json={"lead_ids": [lead1_id, lead2_id]}
+    )
+    assert response_del_admin.status_code == 200
+    assert "Successfully deleted 2 leads" in response_del_admin.json()["detail"]
+
+    # 4. Verify leads are gone
+    response_check1 = client.get(f"/api/leads/{lead1_id}", headers=admin_headers)
+    assert response_check1.status_code == 404
+    response_check2 = client.get(f"/api/leads/{lead2_id}", headers=admin_headers)
+    assert response_check2.status_code == 404
+
