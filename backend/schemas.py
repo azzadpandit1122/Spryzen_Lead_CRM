@@ -56,7 +56,10 @@ class LeadBase(BaseModel):
     authenticity_level: Optional[str] = None
 
 class LeadCreate(LeadBase):
-    pass
+    contact_name: str
+    phone_number: str
+    email_address: EmailStr
+    source_link: str
 
 class LeadUpdate(BaseModel):
     project_name: Optional[str] = None
@@ -157,3 +160,4 @@ class ScanTriggerRequest(BaseModel):
     search_engine: Optional[str] = "Google"
     target_count: Optional[int] = 5
     country: Optional[str] = "Any"
+    stream: Optional[bool] = False

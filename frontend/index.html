@@ -857,15 +857,15 @@
                         <div class="row g-3 mb-3">
                             <div class="col-md-4">
                                 <label class="form-label small text-muted">Contact Name</label>
-                                <input type="text" class="form-control" id="edit-lead-contact">
+                                <input type="text" class="form-control" id="edit-lead-contact" required>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label small text-muted">Phone Number</label>
-                                <input type="text" class="form-control" id="edit-lead-phone">
+                                <input type="text" class="form-control" id="edit-lead-phone" required>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label small text-muted">Email Address</label>
-                                <input type="email" class="form-control" id="edit-lead-email">
+                                <input type="email" class="form-control" id="edit-lead-email" required>
                             </div>
                         </div>
                         <div class="row g-3 mb-3">
@@ -873,7 +873,13 @@
                                 <label class="form-label small text-muted">Website URL</label>
                                 <input type="text" class="form-control" id="edit-lead-website">
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-6">
+                                <label class="form-label small text-muted">Source Link to Connect Lead</label>
+                                <input type="url" class="form-control" id="edit-lead-source-link" placeholder="e.g. https://www.linkedin.com/jobs/..." required>
+                            </div>
+                        </div>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
                                 <label class="form-label small text-muted">Lead Status</label>
                                 <select class="form-select" id="edit-lead-status" required>
                                     <option value="New Lead">New Lead</option>
@@ -887,7 +893,7 @@
                                     <option value="Closed">Closed</option>
                                 </select>
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-6">
                                 <label class="form-label small text-muted">Opportunity Priority</label>
                                 <select class="form-select" id="edit-lead-priority" required>
                                     <option value="Best Opportunity">Best Opportunity</option>
@@ -980,15 +986,15 @@
                         <div class="row g-3 mb-3">
                             <div class="col-md-4">
                                 <label class="form-label small text-muted">Contact Person Name</label>
-                                <input type="text" class="form-control" id="create-lead-contact" placeholder="e.g. Jane Doe">
+                                <input type="text" class="form-control" id="create-lead-contact" placeholder="e.g. Jane Doe" required>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label small text-muted">Public Phone Number</label>
-                                <input type="text" class="form-control" id="create-lead-phone" placeholder="e.g. +1 (555) 019-2834">
+                                <input type="text" class="form-control" id="create-lead-phone" placeholder="e.g. +1 (555) 019-2834" required>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label small text-muted">Public Email Address</label>
-                                <input type="email" class="form-control" id="create-lead-email" placeholder="e.g. jane@company.com">
+                                <input type="email" class="form-control" id="create-lead-email" placeholder="e.g. jane@company.com" required>
                             </div>
                         </div>
                         <div class="row g-3 mb-3">
@@ -996,7 +1002,13 @@
                                 <label class="form-label small text-muted">Business Website URL</label>
                                 <input type="text" class="form-control" id="create-lead-website" placeholder="e.g. https://company.com">
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-6">
+                                <label class="form-label small text-muted">Source Link to Connect Lead</label>
+                                <input type="url" class="form-control" id="create-lead-source-link" placeholder="e.g. https://www.linkedin.com/jobs/..." required>
+                            </div>
+                        </div>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
                                 <label class="form-label small text-muted">Initial Status</label>
                                 <select class="form-select" id="create-lead-status" required>
                                     <option value="New Lead" selected>New Lead</option>
@@ -1005,7 +1017,7 @@
                                     <option value="Follow Up Required">Follow Up Required</option>
                                 </select>
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-6">
                                 <label class="form-label small text-muted">Initial Priority</label>
                                 <select class="form-select" id="create-lead-priority" required>
                                     <option value="Best Opportunity">Best Opportunity</option>

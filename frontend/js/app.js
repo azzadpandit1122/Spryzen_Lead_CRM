@@ -727,6 +727,7 @@ function openEditLeadModal(leadId) {
     document.getElementById('edit-lead-phone').value = lead.phone_number || '';
     document.getElementById('edit-lead-email').value = lead.email_address || '';
     document.getElementById('edit-lead-website').value = lead.website || '';
+    document.getElementById('edit-lead-source-link').value = lead.source_link || '';
     document.getElementById('edit-lead-status').value = lead.status;
     document.getElementById('edit-lead-priority').value = lead.priority;
     document.getElementById('edit-lead-notes').value = lead.notes || '';
@@ -741,19 +742,21 @@ function openEditLeadModal(leadId) {
 
 document.getElementById('edit-lead-form').addEventListener('submit', async (e) => {
     e.preventDefault();
+    
     const leadId = document.getElementById('edit-lead-id').value;
     
     const leadData = {
-        project_name: document.getElementById('edit-lead-project').value,
-        location: document.getElementById('edit-lead-location').value,
-        project_description: document.getElementById('edit-lead-description').value,
-        contact_name: document.getElementById('edit-lead-contact').value,
-        phone_number: document.getElementById('edit-lead-phone').value,
-        email_address: document.getElementById('edit-lead-email').value || null,
-        website: document.getElementById('edit-lead-website').value,
+        project_name: document.getElementById('edit-lead-project').value.trim(),
+        location: document.getElementById('edit-lead-location').value.trim() || null,
+        project_description: document.getElementById('edit-lead-description').value.trim() || null,
+        contact_name: document.getElementById('edit-lead-contact').value.trim(),
+        phone_number: document.getElementById('edit-lead-phone').value.trim(),
+        email_address: document.getElementById('edit-lead-email').value.trim(),
+        website: document.getElementById('edit-lead-website').value.trim() || null,
+        source_link: document.getElementById('edit-lead-source-link').value.trim(),
         status: document.getElementById('edit-lead-status').value,
         priority: document.getElementById('edit-lead-priority').value,
-        notes: document.getElementById('edit-lead-notes').value,
+        notes: document.getElementById('edit-lead-notes').value.trim(),
         trust_score: parseInt(document.getElementById('edit-lead-trust-score').value) || 85,
         trust_factors: document.getElementById('edit-lead-trust-factors').value.trim() || null,
         authenticity_level: document.getElementById('edit-lead-authenticity-level').value,
@@ -789,10 +792,11 @@ document.getElementById('create-lead-form').addEventListener('submit', async (e)
         source: document.getElementById('create-lead-source').value,
         location: document.getElementById('create-lead-location').value.trim() || null,
         project_description: document.getElementById('create-lead-description').value.trim() || null,
-        contact_name: document.getElementById('create-lead-contact').value.trim() || null,
-        phone_number: document.getElementById('create-lead-phone').value.trim() || null,
-        email_address: document.getElementById('create-lead-email').value.trim() || null,
+        contact_name: document.getElementById('create-lead-contact').value.trim(),
+        phone_number: document.getElementById('create-lead-phone').value.trim(),
+        email_address: document.getElementById('create-lead-email').value.trim(),
         website: document.getElementById('create-lead-website').value.trim() || null,
+        source_link: document.getElementById('create-lead-source-link').value.trim(),
         status: document.getElementById('create-lead-status').value,
         priority: document.getElementById('create-lead-priority').value,
         trust_score: parseInt(document.getElementById('create-lead-trust-score').value) || 85,
@@ -889,9 +893,17 @@ document.getElementById('scanner-form').addEventListener('submit', async (e) => 
     summaryCard.classList.add('d-none');
     
     try {
-        const result = await apiRequest('/api/scanner/scan', {
+        const headers = {
+            'Content-Type': 'application/json'
+        };
+        if (state.token) {
+            headers['Authorization'] = `Bearer ${state.token}`;
+        }
+        
+        const response = await fetch(`${API_BASE}/api/scanner/scan`, {
             method: 'POST',
-            body: {
+            headers: headers,
+            body: JSON.stringify({
                 keywords: keywords,
                 sources: sources,
                 date_filter: dateFilter,
@@ -899,21 +911,67 @@ document.getElementById('scanner-form').addEventListener('submit', async (e) => 
                 location: location,
                 search_engine: searchEngine,
                 target_count: targetCount,
-                country: country
-            }
+                country: country,
+                stream: true
+            })
         });
         
-        animateTerminalLogs(result.logs, () => {
-            startBtn.disabled = false;
-            badge.textContent = "CONSOLE IDLE";
-            badge.classList.remove('bg-danger');
-            badge.classList.add('bg-success-glow-pill');
+        if (!response.ok) {
+            const errData = await response.json().catch(() => ({}));
+            const errMsg = errData.detail || `Error: ${response.statusText}`;
+            throw new Error(errMsg);
+        }
+        
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let resultData = null;
+        
+        while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
             
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop();
+            
+            for (const line of lines) {
+                if (line.trim()) {
+                    const parsed = JSON.parse(line);
+                    if (parsed.log) {
+                        const lineText = parsed.log;
+                        let lineClass = 'console-info';
+                        
+                        if (lineText.includes('[SCAN]')) lineClass = 'console-scan';
+                        else if (lineText.includes('[COMPLIANCE]')) lineClass = 'console-compliance';
+                        else if (lineText.includes('[FOUND]')) lineClass = 'console-found';
+                        else if (lineText.includes('[EXTRACT]')) lineClass = 'console-extract';
+                        else if (lineText.includes('[SKIP]')) lineClass = 'console-skip';
+                        else if (lineText.includes('[ERROR]')) lineClass = 'console-error';
+                        
+                        terminal.innerHTML += `<div class="console-log-line ${lineClass}">${lineText}</div>`;
+                        terminal.scrollTop = terminal.scrollHeight;
+                    } else {
+                        resultData = parsed;
+                    }
+                }
+            }
+        }
+        
+        startBtn.disabled = false;
+        badge.textContent = "CONSOLE IDLE";
+        badge.classList.remove('bg-danger');
+        badge.classList.add('bg-success-glow-pill');
+        
+        if (resultData && resultData.success) {
             summaryCard.classList.remove('d-none');
-            document.getElementById('scan-summary-text').textContent = `Collected ${result.leads_collected} new business opportunities matching criteria.`;
-            
-            showToast(`Scan complete! Collected ${result.leads_collected} leads.`);
-        });
+            document.getElementById('scan-summary-text').textContent = `Collected ${resultData.leads_collected} new business opportunities matching criteria.`;
+            showToast(`Scan complete! Collected ${resultData.leads_collected} leads.`);
+        } else {
+            const errMsg = (resultData && resultData.error) ? resultData.error : "Unknown scan error occurred.";
+            terminal.innerHTML += `<div class="console-log-line console-error">[ERROR] Scan failed: ${errMsg}</div>`;
+            showToast(errMsg, true);
+        }
         
     } catch (err) {
         startBtn.disabled = false;
